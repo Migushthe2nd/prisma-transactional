@@ -1,5 +1,3 @@
-import { gte } from 'semver';
-
 import { StorageDriver as StorageDriverEnum } from '../enums/storage-driver';
 import { AsyncLocalStorageDriver } from './driver/async-local-storage';
 import type { StorageDriver } from './driver/interface';
@@ -47,10 +45,22 @@ export class Storage {
   }
 
   private getBestSupportedDriverConstructor(): StorageDriverConstructor {
-    if (process && gte(process.versions.node, '16.0.0')) {
+    if (process && process.versions && process.versions.node && Storage.compareVersionsIsOrNewer(process.versions.node, '16.0.0')) {
       return AsyncLocalStorageDriver;
     }
-
     return ClsHookedDriver;
+  }
+
+  private static compareVersionsIsOrNewer(version1: string, version2: string): boolean {
+    const v1Parts = version1.split('.').map(Number);
+    const v2Parts = version2.split('.').map(Number);
+    
+    for (let i = 0; i < Math.max(v1Parts.length, v2Parts.length); i++) {
+      const v1 = v1Parts[i] || 0;
+      const v2 = v2Parts[i] || 0;
+      if (v1 > v2) return true;
+      if (v1 < v2) return false;
+    }
+    return true;
   }
 }

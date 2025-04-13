@@ -1,18 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { PrismaClient, User } from '@prisma/client';
 
 import { UserReaderService } from './user-reader.service';
 
-import { User } from '../entities/User.entity';
 import { runOnTransactionCommit, runOnTransactionRollback, Transactional } from '../../src';
 
 @Injectable()
 export class UserWriterService {
   constructor(
-    @InjectRepository(User)
-    private readonly repository: Repository<User>,
-
+    private readonly prisma: PrismaClient,
     private readonly readerService: UserReaderService,
   ) {}
 
@@ -23,8 +19,9 @@ export class UserWriterService {
       runOnTransactionRollback(() => hookHandler(false));
     }
 
-    const user = new User(name, 0);
-    await this.repository.save(user);
+    const user = await this.prisma.user.create({
+      data: { name, money: 0 }
+    });
 
     return user;
   }
@@ -39,8 +36,9 @@ export class UserWriterService {
       runOnTransactionRollback(() => hookHandler(false));
     }
 
-    const user = new User(name, 0);
-    await this.repository.save(user);
+    const user = await this.prisma.user.create({
+      data: { name, money: 0 }
+    });
 
     throw new Error('Some error');
   }

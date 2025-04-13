@@ -1,12 +1,10 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { DataSource } from 'typeorm';
+import { PrismaClient } from '@prisma/client';
 
-import { User } from './entities/User.entity';
 import { UserReaderService } from './services/user-reader.service';
 import { UserWriterService } from './services/user-writer.service';
 
-import { initializeTransactionalContext, addTransactionalDataSource, StorageDriver } from '../src';
+import { initializeTransactionalContext, addPrismaClient, StorageDriver } from '../src';
 
 describe('Integration with Nest.js', () => {
   let app: TestingModule;
@@ -14,7 +12,7 @@ describe('Integration with Nest.js', () => {
   let readerService: UserReaderService;
   let writerService: UserWriterService;
 
-  let dataSource: DataSource;
+  let prisma: PrismaClient;
 
   beforeAll(async () => {
     const storageDriver =
@@ -24,62 +22,46 @@ describe('Integration with Nest.js', () => {
 
     initializeTransactionalContext({ storageDriver });
 
+    prisma = addPrismaClient(new PrismaClient({
+      datasourceUrl: 'postgresql://postgres:postgres@localhost:5445/test',
+    }));
+
     app = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRootAsync({
-          useFactory() {
-            return {
-              type: 'postgres',
-              host: 'localhost',
-              port: 5436,
-              username: 'postgres',
-              password: 'postgres',
-              database: 'test',
-              entities: [User],
-              synchronize: true,
-              logging: false,
-            };
-          },
-          async dataSourceFactory(options) {
-            if (!options) {
-              throw new Error('Invalid options passed');
-            }
-
-            return addTransactionalDataSource(new DataSource(options));
-          },
-        }),
-
-        TypeOrmModule.forFeature([User]),
+      providers: [
+        {
+          provide: PrismaClient,
+          useValue: prisma,
+        },
+        UserReaderService,
+        UserWriterService,
       ],
-      providers: [UserReaderService, UserWriterService],
-      exports: [],
     }).compile();
 
     readerService = app.get<UserReaderService>(UserReaderService);
     writerService = app.get<UserWriterService>(UserWriterService);
 
-    dataSource = app.get(DataSource);
-
-    await dataSource.createEntityManager().clear(User);
+    await prisma.$connect();
+    await prisma.user.deleteMany();
   });
 
   afterEach(async () => {
-    await dataSource.createEntityManager().clear(User);
+    await prisma.user.deleteMany();
   });
 
   afterAll(async () => {
     await app.close();
+    await prisma.$disconnect();
   });
 
   it('should create a user using service if transaction was completed successfully', async () => {
     const name = 'John Doe';
     const onTransactionCompleteSpy = jest.fn();
 
-    const writtenPost = await writerService.createUser(name, onTransactionCompleteSpy);
-    expect(writtenPost.name).toBe(name);
+    const writtenUser = await writerService.createUser(name, onTransactionCompleteSpy);
+    expect(writtenUser.name).toBe(name);
 
-    const readPost = await readerService.findUserByName(name);
-    expect(readPost?.name).toBe(name);
+    const readUser = await readerService.findUserByName(name);
+    expect(readUser?.name).toBe(name);
 
     expect(onTransactionCompleteSpy).toBeCalledTimes(1);
     expect(onTransactionCompleteSpy).toBeCalledWith(true);
@@ -93,8 +75,8 @@ describe('Integration with Nest.js', () => {
       writerService.createUserAndThrow(name, onTransactionCompleteSpy),
     ).rejects.toThrowError();
 
-    const readPost = await readerService.findUserByName(name);
-    expect(readPost).toBeNull();
+    const readUser = await readerService.findUserByName(name);
+    expect(readUser).toBeNull();
 
     expect(onTransactionCompleteSpy).toBeCalledTimes(1);
     expect(onTransactionCompleteSpy).toBeCalledWith(false);

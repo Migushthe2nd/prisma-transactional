@@ -4,7 +4,7 @@ services:
   postgres-simple:
     image: postgres:alpine
     ports:
-      - '5435:5432'
+      - '5445:5432'
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres
@@ -19,7 +19,7 @@ services:
   postgres-nest:
     image: postgres:alpine
     ports:
-      - '5436:5432'
+      - '5446:5432'
     environment:
       POSTGRES_PASSWORD: postgres
       POSTGRES_USER: postgres

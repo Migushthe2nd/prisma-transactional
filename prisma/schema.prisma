@@ -1,8 +1,17 @@
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  url      = "postgresql://postgres:postgres@localhost:5445/test"
 }
 
 generator client {
   provider = "prisma-client-js"
+}
+
+model User {
+  name  String @id
+  money Int
+}
+
+model Counter {
+  value Int @id @default(autoincrement())
 }

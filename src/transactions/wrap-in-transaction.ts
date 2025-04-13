@@ -1,35 +1,24 @@
-import { EntityManager } from 'typeorm';
-import {
-  DataSourceName,
-  getDataSourceByName,
-  getEntityManagerByDataSourceName,
-  getTransactionalContext,
-  setEntityManagerByDataSourceName,
-} from '../common';
-
+import { PrismaClient } from '@prisma/client';
+import { getTransactionalContext } from '../common';
 import { IsolationLevel } from '../enums/isolation-level';
 import { Propagation } from '../enums/propagation';
-import { runInNewHookContext } from '../hooks';
 import { TransactionalError } from '../errors/transactional';
+import { runInNewHookContext } from '../hooks';
+import { getPrismaClientByName, PrismaTransactionalClient } from '../common/types';
 
 export interface WrapInTransactionOptions {
-  /**
-   * For compatibility with `typeorm-transactional-cls-hooked` we use `connectionName`
-   */
-  connectionName?: DataSourceName;
-
+  clientName?: string;
   propagation?: Propagation;
-
   isolationLevel?: IsolationLevel;
-
   name?: string | symbol;
 }
+
+const PRISMA_TRANSACTION_KEY = '@prisma/transaction';
 
 export const wrapInTransaction = <Fn extends (this: any, ...args: any[]) => ReturnType<Fn>>(
   fn: Fn,
   options?: WrapInTransactionOptions,
 ) => {
-  // eslint-disable-next-line func-style
   function wrapper(this: unknown, ...args: unknown[]) {
     const context = getTransactionalContext();
     if (!context) {
@@ -38,12 +27,12 @@ export const wrapInTransaction = <Fn extends (this: any, ...args: any[]) => Retu
       );
     }
 
-    const connectionName = options?.connectionName ?? 'default';
+    const clientName = options?.clientName ?? 'default';
+    const prismaClient = getPrismaClientByName(clientName);
 
-    const dataSource = getDataSourceByName(connectionName);
-    if (!dataSource) {
+    if (!prismaClient) {
       throw new Error(
-        'No data sources defined in your app ... please call addTransactionalDataSources() before application start.',
+        'No Prisma client defined in your app ... please call addPrismaClient() before application start.',
       );
     }
 
@@ -54,31 +43,26 @@ export const wrapInTransaction = <Fn extends (this: any, ...args: any[]) => Retu
     const runWithNewHook = () => runInNewHookContext(context, runOriginal);
 
     const runWithNewTransaction = () => {
-      const transactionCallback = async (entityManager: EntityManager) => {
-        setEntityManagerByDataSourceName(context, connectionName, entityManager);
-
+      const transactionCallback = async (tx: PrismaTransactionalClient) => {
+        context.set(PRISMA_TRANSACTION_KEY, tx);
         try {
           const result = await runOriginal();
-
           return result;
         } finally {
-          setEntityManagerByDataSourceName(context, connectionName, null);
+          context.set(PRISMA_TRANSACTION_KEY, null);
         }
       };
 
-      if (isolationLevel) {
-        return runInNewHookContext(context, () => {
-          return dataSource.transaction(isolationLevel, transactionCallback);
+      return runInNewHookContext(context, () => {
+        return prismaClient.$transaction(transactionCallback, {
+          isolationLevel,
         });
-      } else {
-        return runInNewHookContext(context, () => {
-          return dataSource.transaction(transactionCallback);
-        });
-      }
+      });
     };
 
     return context.run(async () => {
-      const currentTransaction = getEntityManagerByDataSourceName(context, connectionName);
+      const currentTransaction = context.get(PRISMA_TRANSACTION_KEY) as PrismaTransactionalClient | null;
+
       switch (propagation) {
         case Propagation.MANDATORY:
           if (!currentTransaction) {
@@ -86,7 +70,6 @@ export const wrapInTransaction = <Fn extends (this: any, ...args: any[]) => Retu
               "No existing transaction found for transaction marked with propagation 'MANDATORY'",
             );
           }
-
           return runOriginal();
 
         case Propagation.NESTED:
@@ -98,25 +81,21 @@ export const wrapInTransaction = <Fn extends (this: any, ...args: any[]) => Retu
               "Found an existing transaction, transaction marked with propagation 'NEVER'",
             );
           }
-
           return runWithNewHook();
 
         case Propagation.NOT_SUPPORTED:
           if (currentTransaction) {
-            setEntityManagerByDataSourceName(context, connectionName, null);
+            context.set(PRISMA_TRANSACTION_KEY, null);
             const result = await runWithNewHook();
-            setEntityManagerByDataSourceName(context, connectionName, currentTransaction);
-
+            context.set(PRISMA_TRANSACTION_KEY, currentTransaction);
             return result;
           }
-
           return runOriginal();
 
         case Propagation.REQUIRED:
           if (currentTransaction) {
             return runOriginal();
           }
-
           return runWithNewTransaction();
 
         case Propagation.REQUIRES_NEW:

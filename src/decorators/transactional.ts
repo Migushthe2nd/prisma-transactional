@@ -1,3 +1,4 @@
+import 'reflect-metadata'
 import { wrapInTransaction, WrapInTransactionOptions } from '../transactions/wrap-in-transaction';
 
 export const Transactional = (options?: WrapInTransactionOptions): MethodDecorator => {
