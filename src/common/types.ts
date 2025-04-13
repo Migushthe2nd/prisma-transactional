@@ -15,7 +15,7 @@ export const getPrismaClientByName = (name: string = 'default'): PrismaClient | 
   return container?.client ?? null;
 };
 
-export const addPrismaClient = (client: PrismaClient, name: string = 'default') => {
+export const createPrismaTransactional = (client: PrismaClient, name: string = 'default') => {
   const proxiedClient = createPrismaProxy(client);
   prismaClients.set(name, { client: proxiedClient, name });
   return proxiedClient

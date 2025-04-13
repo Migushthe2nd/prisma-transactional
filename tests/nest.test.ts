@@ -4,7 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { UserReaderService } from './services/user-reader.service';
 import { UserWriterService } from './services/user-writer.service';
 
-import { initializeTransactionalContext, addPrismaClient, StorageDriver } from '../src';
+import { initializeTransactionalContext, createPrismaTransactional, StorageDriver } from '../src';
 
 describe('Integration with Nest.js', () => {
   let app: TestingModule;
@@ -22,7 +22,7 @@ describe('Integration with Nest.js', () => {
 
     initializeTransactionalContext({ storageDriver });
 
-    prisma = addPrismaClient(new PrismaClient({
+    prisma = createPrismaTransactional(new PrismaClient({
       datasourceUrl: 'postgresql://postgres:postgres@localhost:5445/test',
     }));
 

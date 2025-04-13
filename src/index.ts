@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { initializeTransactionalContext } from './common';
-import { addPrismaClient, PrismaTransactionalClient } from './common/types';
+import { createPrismaTransactional, PrismaTransactionalClient } from './common/types';
 import { createPrismaProxy } from './common/prisma-proxy';
 import { Transactional } from './decorators/transactional';
 import { IsolationLevel } from './enums/isolation-level';
@@ -9,7 +9,7 @@ import { StorageDriver } from './enums/storage-driver';
 import { runInTransaction } from './transactions/run-in-transaction';
 
 export {
-  addPrismaClient,
+  createPrismaTransactional,
   createPrismaProxy,
   initializeTransactionalContext,
   IsolationLevel,

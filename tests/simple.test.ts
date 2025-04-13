@@ -1,6 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import {
-  addPrismaClient,
+  createPrismaTransactional,
   initializeTransactionalContext,
   Propagation,
   runInTransaction,
@@ -13,7 +13,7 @@ import {
 import { sleep, getCurrentTransactionId } from './utils';
 import { TransactionalError } from '../src/errors/transactional';
 
-const prisma = addPrismaClient(new PrismaClient({
+const prisma = createPrismaTransactional(new PrismaClient({
   datasourceUrl: 'postgresql://postgres:postgres@localhost:5445/test',
 }));
 
