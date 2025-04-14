@@ -1,6 +1,6 @@
 {
   "name": "prisma-transactional",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "A Transactional Method Decorator for Prisma that uses cls-hooked to handle and propagate transactions between different services and methods. Inspired by Spring Transactional Annotation",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

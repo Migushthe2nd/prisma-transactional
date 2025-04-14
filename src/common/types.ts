@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { createPrismaProxy } from './prisma-proxy';
 
-export type PrismaTransactionalClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends'>;
+export type PrismaTransactionalClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends' | 'user' | 'counter'>;
 
 export interface PrismaClientContainer {
   client: PrismaClient;
@@ -15,8 +15,8 @@ export const getPrismaClientByName = (name: string = 'default'): PrismaClient | 
   return container?.client ?? null;
 };
 
-export const createPrismaTransactional = (client: PrismaClient, name: string = 'default') => {
+export const createPrismaTransactional = <Client extends PrismaClient>(client: Client, name: string = 'default') => {
   const proxiedClient = createPrismaProxy(client);
   prismaClients.set(name, { client: proxiedClient, name });
-  return proxiedClient
+  return proxiedClient as Client
 };

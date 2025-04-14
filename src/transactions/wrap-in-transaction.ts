@@ -32,7 +32,7 @@ export const wrapInTransaction = <Fn extends (this: any, ...args: any[]) => Retu
 
     if (!prismaClient) {
       throw new Error(
-        'No Prisma client defined in your app ... please call addPrismaClient() before application start.',
+        'No Prisma client defined in your app ... please call createPrismaTransactional() before application start.',
       );
     }
 
