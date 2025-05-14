@@ -2,22 +2,24 @@ import { StorageDriver as StorageDriverEnum } from '../enums/storage-driver';
 import { AsyncLocalStorageDriver } from './driver/async-local-storage';
 import type { StorageDriver } from './driver/interface';
 import { ClsHookedDriver } from './driver/cls-hooked';
+import { NestjsClsDriver } from './driver/nestjs-cls';
+import { ClsService } from 'nestjs-cls';
 
 interface StorageDriverConstructor {
-  new (): StorageDriver;
+  new (cls?: ClsService): StorageDriver;
 }
 
 export class Storage {
   private driver: StorageDriver;
 
-  public create(storageDriverEnum?: StorageDriverEnum) {
+  public create(storageDriverEnum?: StorageDriverEnum, cls?: ClsService) {
     if (this.driver) {
       // We probably should not allow calling this function when driver is already defined
       return this.driver;
     }
 
     const DriverConstructor = this.getDriverConstructor(storageDriverEnum);
-    this.driver = new DriverConstructor();
+    this.driver = new DriverConstructor(cls);
 
     return this.driver;
   }
@@ -32,12 +34,17 @@ export class Storage {
     return this.driver;
   }
 
-  private getDriverConstructor(storageDriverEnum?: StorageDriverEnum): StorageDriverConstructor {
+  private getDriverConstructor(storageDriverEnum?: StorageDriverEnum, cls?: ClsService): StorageDriverConstructor {
     switch (storageDriverEnum) {
       case StorageDriverEnum.ASYNC_LOCAL_STORAGE:
         return AsyncLocalStorageDriver;
       case StorageDriverEnum.CLS_HOOKED:
         return ClsHookedDriver;
+      case StorageDriverEnum.NESTJS_CLS:
+        if (!cls) {
+          throw new Error('ClsService instance is required for NESTJS_CLS driver');
+        }
+        return NestjsClsDriver;
       case StorageDriverEnum.AUTO:
       default:
         return this.getBestSupportedDriverConstructor();
