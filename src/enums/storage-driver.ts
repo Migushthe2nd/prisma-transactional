@@ -17,9 +17,4 @@ export enum StorageDriver {
    * Uses AsyncLocalStorage which is available sice node 16
    */
   ASYNC_LOCAL_STORAGE = 'ASYNC_LOCAL_STORAGE',
-
-  /**
-   * Uses nestjs-cls for transaction context management
-   */
-  NESTJS_CLS = 'NESTJS_CLS',
 }

@@ -1,7 +1,5 @@
 import { PrismaClient } from '@prisma/client';
 import { createPrismaProxy } from './prisma-proxy';
-import { ClsService } from 'nestjs-cls';
-import { StorageDriver } from '../storage/driver/interface';
 
 export type PrismaTransactionalClient = Omit<PrismaClient, '$connect' | '$disconnect' | '$on' | '$transaction' | '$use' | '$extends' | 'user' | 'counter'>;
 
@@ -17,8 +15,8 @@ export const getPrismaClientByName = (name: string = 'default'): PrismaClient | 
   return container?.client ?? null;
 };
 
-export const createPrismaTransactional = <Client extends PrismaClient>(client: Client, name: string = 'default', storageDriver?: StorageDriver) => {
-  const proxiedClient = createPrismaProxy(client, storageDriver);
+export const createPrismaTransactional = <Client extends PrismaClient>(client: Client, name: string = 'default') => {
+  const proxiedClient = createPrismaProxy(client);
   prismaClients.set(name, { client: proxiedClient, name });
   return proxiedClient as Client
 };

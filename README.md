@@ -10,11 +10,8 @@ A `Transactional` decorator and utility library for [Prisma](https://www.prisma.
 ## npm
 npm install --save prisma-transactional
 
-## Required dependencies
+## Needed dependencies
 npm install --save @prisma/client
-
-## Optional dependencies (for NestJS integration)
-npm install --save nestjs-cls
 ```
 
 Or using yarn:
@@ -22,11 +19,8 @@ Or using yarn:
 ```shell
 yarn add prisma-transactional
 
-## Required dependencies
+## Needed dependencies
 yarn add @prisma/client
-
-## Optional dependencies (for NestJS integration)
-yarn add nestjs-cls
 ```
 
 ## Initialization
@@ -36,12 +30,7 @@ Initialize the transactional context before starting your application:
 ```typescript
 import { initializeTransactionalContext, StorageDriver } from 'prisma-transactional';
 
-// Using cls-hooked (legacy) or AsyncLocalStorage (Node.js >= 16)
-initializeTransactionalContext({ storageDriver: StorageDriver.AUTO });
-
-// Or explicitly choose a storage driver:
-initializeTransactionalContext({ storageDriver: StorageDriver.CLS_HOOKED }); // Legacy support
-initializeTransactionalContext({ storageDriver: StorageDriver.ASYNC_LOCAL_STORAGE }); // Node.js >= 16
+initializeTransactionalContext({ storageDriver: StorageDriver.CLS_HOOKED });
 ```
 
 Create a transactional Prisma client:
@@ -117,17 +106,10 @@ Use with NestJS by initializing the context and creating the Prisma client:
 ```typescript
 // main.ts
 import { initializeTransactionalContext, StorageDriver } from 'prisma-transactional';
-import { ClsModule, ClsService } from 'nestjs-cls';
 
 const bootstrap = async () => {
-  // Option 1: Using traditional storage drivers
-  initializeTransactionalContext({ storageDriver: StorageDriver.AUTO });
-
-  // Option 2: Using NestJS CLS integration
+  initializeTransactionalContext({ storageDriver: StorageDriver.CLS_HOOKED });
   const app = await NestFactory.create(AppModule);
-  const cls = app.get(ClsService);
-  initializeTransactionalContext({ storageDriver: StorageDriver.NESTJS_CLS, cls });
-
   await app.listen(3000);
 };
 
@@ -193,7 +175,3 @@ export class UserService {
 - `Propagation`: Transaction propagation options
 - `IsolationLevel`: Transaction isolation levels
 - `StorageDriver`: Available storage drivers
-  - `AUTO`: Uses AsyncLocalStorage when Node.js >= 16, falls back to cls-hooked
-  - `CLS_HOOKED`: Legacy support using cls-hooked
-  - `ASYNC_LOCAL_STORAGE`: Uses Node.js AsyncLocalStorage (Node.js >= 16)
-  - `NESTJS_CLS`: Uses nestjs-cls for transaction context management
